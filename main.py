@@ -56,7 +56,6 @@ def update():
     global board, wait, pq
 
     if pq.empty():
-        mark_path()
         return
 
     wait += 1
@@ -70,6 +69,7 @@ def update():
 
     if i == stop[0] and j == stop[1]:
         pq = queue.PriorityQueue()
+        mark_path()
         return
 
     moves = [(-1, 0), (0, -1), (0, 1), (1, 0)]
@@ -92,6 +92,22 @@ def update():
         pq.put((val, ni, nj))
 
 
+"""EVENTS"""
+
+
+def on_key_down(key):
+    if key == keys.S:
+        pq.put((0, start[0], start[1]))
+    elif key == keys.R:
+        init()
+
+
+def on_mouse_down(pos):
+    x, y = pos
+    row, col = get_grid_pos(x, y)
+    board[row][col]["vis"] = 3
+
+
 """HELPERS"""
 
 
@@ -110,11 +126,10 @@ def manhattan_dist(p1, p2):
     return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
 
 
-"""EVENTS"""
-
-
-def on_key_down(key):
-    init()
+def get_grid_pos(x, y):
+    col = x // cell_size
+    row = y // cell_size
+    return row, col
 
 
 """INITIALIZATION"""
@@ -135,7 +150,6 @@ def init():
     stop = (random.randint(0, board_size - 1),
             random.randint(0, board_size - 1))
     pq = queue.PriorityQueue()
-    pq.put((0, start[0], start[1]))
 
     wait = 0
 
