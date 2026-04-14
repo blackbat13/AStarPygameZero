@@ -9,10 +9,19 @@ import pgzrun
 WIDTH = 800
 HEIGHT = 800
 
+# Movement directions (4 or 8)
+MOVES = [(-1, 0), (0, -1), (0, 1), (1, 0)] # 4 directions
+# MOVES = [(-1, 0), (0, -1), (0, 1), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1)] # 8 directions
+
+# Heuristic function (Manhattan or Euclidean)
+DISTANCE_FUNC = lambda p1, p2: abs(p1[0] - p2[0]) + abs(p1[1] - p2[1]) # manhattan distance
+# DISTANCE_FUNC = lambda p1, p2: math.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) # euclidean distance
+
+DELAY = 5 # Frames between each algorithm step (lower = faster)
+
 """VARIABLES"""
 
 board_size = 40
-delay = 5
 wall_count = 120
 start = (0, 0)
 stop = (random.randint(0, board_size - 1), random.randint(0, board_size - 1))
@@ -29,6 +38,7 @@ def draw():
 
 
 def draw_board():
+    """Draws the board on the screen."""
     for i in range(board_size):
         for j in range(board_size):
             if board[i][j]["vis"] == 1:
@@ -53,13 +63,13 @@ def draw_board():
 
 
 def update():
-    global board, wait, pq
+    global wait, pq
 
     if pq.empty():
         return
 
     wait += 1
-    wait %= delay
+    wait %= DELAY
 
     if wait != 0:
         return
@@ -72,10 +82,12 @@ def update():
         mark_path()
         return
 
-    moves = [(-1, 0), (0, -1), (0, 1), (1, 0)]
-    # moves = [(-1, 0), (0, -1), (0, 1), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1)]
+    update_next_moves(i, j)
 
-    for mv in moves:
+
+def update_next_moves(i, j):
+    """Updates the next moves from the current position."""
+    for mv in MOVES:
         ni = i + mv[0]
         nj = j + mv[1]
         if ni >= board_size or ni < 0 or nj >= board_size or nj < 0:
@@ -84,8 +96,7 @@ def update():
         if board[ni][nj]["vis"] != 0:
             continue
 
-        val = manhattan_dist((ni, nj), stop)
-        # val = euclidean_dist((ni, nj), stop)
+        val = DISTANCE_FUNC((ni, nj), stop)
         board[ni][nj]["vis"] = 2
         board[ni][nj]["val"] = val
         board[ni][nj]["prev"] = (i, j)
@@ -102,31 +113,31 @@ def on_key_down(key):
         init()
 
 
-def on_mouse_down(pos):
+def on_mouse_down(pos, button):
+    global stop
+
     x, y = pos
     row, col = get_grid_pos(x, y)
-    board[row][col]["vis"] = 3
+    if button == mouse.LEFT:
+        board[row][col]["vis"] = 3 if board[row][col]["vis"] == 0 else 0
+    elif button == mouse.RIGHT:
+        board[row][col]["vis"] = 0
+        stop = (row, col)
 
 
 """HELPERS"""
 
 
 def mark_path():
+    """Marks the path from the stop to the start."""
     current = board[stop[0]][stop[1]]["prev"]
     while current != start:
         board[current[0]][current[1]]["vis"] = 4
         current = board[current[0]][current[1]]["prev"]
 
 
-def euclidean_dist(p1, p2):
-    return math.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
-
-
-def manhattan_dist(p1, p2):
-    return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
-
-
 def get_grid_pos(x, y):
+    """Converts pixel coordinates to grid coordinates."""
     col = x // cell_size
     row = y // cell_size
     return row, col
@@ -136,6 +147,7 @@ def get_grid_pos(x, y):
 
 
 def init():
+    """Initializes the board and variables."""
     global stop, pq, wait, board_size, wall_count, cell_size
 
     board_size = random.choice([5, 8, 10, 16, 50, 20, 40, 25, 32])
@@ -147,14 +159,14 @@ def init():
     cell_size = WIDTH // board_size
 
     init_board()
-    stop = (random.randint(0, board_size - 1),
-            random.randint(0, board_size - 1))
+
     pq = queue.PriorityQueue()
 
     wait = 0
 
 
 def init_board():
+    """Initializes the board with empty cells and random walls."""
     global board
 
     board = [
@@ -165,6 +177,8 @@ def init_board():
     for _ in range(wall_count):
         board[random.randint(0, board_size - 1)
               ][random.randint(0, board_size - 1)]["vis"] = 3
+        
+    board[stop[0]][stop[1]]["vis"] = 0
 
 
 init()
